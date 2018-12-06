@@ -44,10 +44,18 @@ func main() {
 		pos := position{x, y}
 		positions[pos] = position_value{id, 0}
 		id++
-		if x < minX { minX = x }
-		if x > maxX { maxX = x }
-		if y < minY { minY = y }
-		if y > maxY { maxY = y }
+		if x < minX {
+			minX = x
+		}
+		if x > maxX {
+			maxX = x
+		}
+		if y < minY {
+			minY = y
+		}
+		if y > maxY {
+			maxY = y
+		}
 	}
 
 	// just for fun, wrap around the coordinates at least by one..
@@ -64,7 +72,7 @@ func main() {
 			index := position{x, y}
 
 			for pos, _ := range positions {
-				distance := int(math.Abs(float64(pos.x - x))) + int(math.Abs(float64(pos.y - y)))
+				distance := int(math.Abs(float64(pos.x-x))) + int(math.Abs(float64(pos.y-y)))
 				world[index] += distance
 			}
 
@@ -73,7 +81,6 @@ func main() {
 			//minDist = getMinimalDistance(index, minDist)
 
 			printTile(world[index], threshold)
-
 
 			//if minDist != -1 {
 			//	if x == minX || x == maxX || y == minY || y == maxY {
@@ -118,4 +125,3 @@ func getTotal(value int, threshold int) {
 		fmt.Printf(". ")
 	}
 }
-

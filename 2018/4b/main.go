@@ -63,7 +63,7 @@ func main() {
 		}
 	}
 	fmt.Printf("Guard %d sleeps at minute %d for %d times\n", maxKey.guard, maxKey.minute, maxMinute)
-	fmt.Printf("Thus the answer: %d\n", maxKey.guard * maxKey.minute)
+	fmt.Printf("Thus the answer: %d\n", maxKey.guard*maxKey.minute)
 
 	if err := scanner.Err(); err != nil {
 		log.Fatal(err)

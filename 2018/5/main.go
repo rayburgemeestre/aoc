@@ -7,7 +7,7 @@ import (
 	"os"
 )
 
-func runeToLowercase(char rune) (rune) {
+func runeToLowercase(char rune) rune {
 	return char | ('a' - 'A')
 }
 
