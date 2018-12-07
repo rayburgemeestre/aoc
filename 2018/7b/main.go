@@ -46,16 +46,16 @@ func (puzzle *puzzle) ingestLineOfInput(line string) {
 }
 
 type workers struct {
-	workerSecondsOfWork [numWorkers]int
-	workerLetter        [numWorkers]string
+	workers      [numWorkers]int
+	workerLetter [numWorkers]string
 }
 
 func (w *workers) workForOneSecond(puzzle *puzzle) {
-	for index, _ := range w.workerSecondsOfWork {
-		if w.workerSecondsOfWork[index] > 0 {
-			w.workerSecondsOfWork[index]--
+	for index, _ := range w.workers {
+		if w.workers[index] > 0 {
+			w.workers[index]--
 			// When done, mark the letter as done, this frees up the worker again
-			if w.workerSecondsOfWork[index] == 0 {
+			if w.workers[index] == 0 {
 				puzzle.lettersDone[w.workerLetter[index]] = true
 			}
 		}
@@ -63,14 +63,12 @@ func (w *workers) workForOneSecond(puzzle *puzzle) {
 }
 
 func (w *workers) assignWorkload(index int, letter string, duration int) {
-	w.workerSecondsOfWork[index] = duration
+	w.workers[index] = duration
 	w.workerLetter[index] = letter
 }
 
 func main() {
-	puzzle := puzzle{map[pair]bool{},
-		map[string]bool{},
-		[]string{}, map[string]bool{}, map[string]bool{}}
+	puzzle := puzzle{map[pair]bool{}, map[string]bool{}, []string{}, map[string]bool{}, map[string]bool{}}
 	workers := workers{[numWorkers]int{}, [numWorkers]string{}}
 
 	forEachLineInFile("input", puzzle.ingestLineOfInput)
@@ -84,10 +82,10 @@ func main() {
 
 		lettersReady := getLettersReadyForProcessing(&puzzle)
 
-		// Provide letters to workerSecondsOfWork that are open for processing
-		for index := range workers.workerSecondsOfWork {
+		// Provide letters to workers that are open for processing
+		for index, secondsTodo := range workers.workers {
 
-			workerIsFree := workers.workerSecondsOfWork[index] == 0
+			workerIsFree := secondsTodo == 0
 			workAvailable := len(lettersReady) > 0
 
 			if workerIsFree && workAvailable {
