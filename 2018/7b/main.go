@@ -10,21 +10,23 @@ import (
 )
 
 // For input use:
+const filename = "input"
 const numWorkers = 5
 const minTaskDuration = 60
 
 // For input_test use:
+//const filename = "input_test"
 //const numWorkers = 2
 //const minTaskDuration = 0
 
-type pair struct {
+type edge struct {
 	from string
 	to   string
 }
 
 type puzzle struct {
-	tree            map[pair]bool
-	treeLetterAdded map[string]bool
+	graph           map[edge]bool
+	graphLetterDone map[string]bool
 
 	lettersUsed       []string
 	lettersInProgress map[string]bool
@@ -33,16 +35,16 @@ type puzzle struct {
 
 func (puzzle *puzzle) ingestLineOfInput(line string) {
 	words := strings.Fields(line)
-	p := pair{words[1], words[7]}
-	puzzle.tree[p] = true
+	edge := edge{words[1], words[7]}
+	puzzle.graph[edge] = true
 	add := func(num string) {
-		if _, alreadyAdded := puzzle.treeLetterAdded[num]; !alreadyAdded {
+		if _, alreadyAdded := puzzle.graphLetterDone[num]; !alreadyAdded {
 			puzzle.lettersUsed = append(puzzle.lettersUsed, num)
 		}
-		puzzle.treeLetterAdded[num] = true
+		puzzle.graphLetterDone[num] = true
 	}
-	add(p.to)
-	add(p.from)
+	add(edge.to)
+	add(edge.from)
 }
 
 type workers struct {
@@ -68,14 +70,15 @@ func (w *workers) assignWorkload(index int, letter string, duration int) {
 }
 
 func main() {
-	puzzle := puzzle{map[pair]bool{}, map[string]bool{}, []string{}, map[string]bool{}, map[string]bool{}}
+	puzzle := puzzle{map[edge]bool{}, map[string]bool{}, []string{}, map[string]bool{}, map[string]bool{}}
 	workers := workers{[numWorkers]int{}, [numWorkers]string{}}
 
-	forEachLineInFile("input", puzzle.ingestLineOfInput)
+	forEachLineInFile(filename, puzzle.ingestLineOfInput)
 
 	sort.Strings(puzzle.lettersUsed) // turns out this is simply A-Z
 
 	for time := 0; ; time++ {
+
 		printProgress(time, &puzzle)
 
 		workers.workForOneSecond(&puzzle)
@@ -83,8 +86,7 @@ func main() {
 		lettersReady := getLettersReadyForProcessing(&puzzle)
 
 		// Provide letters to workers that are open for processing
-		for index, secondsTodo := range workers.workers {
-
+		for workerIndex, secondsTodo := range workers.workers {
 			workerIsFree := secondsTodo == 0
 			workAvailable := len(lettersReady) > 0
 
@@ -93,7 +95,7 @@ func main() {
 				letter, lettersReady = pop(lettersReady)
 
 				duration := minTaskDuration + int(letter[0]-'A') + 1
-				workers.assignWorkload(index, letter, duration)
+				workers.assignWorkload(workerIndex, letter, duration)
 
 				// Make sure we won't assign it again to another worker
 				puzzle.lettersInProgress[letter] = true
@@ -120,15 +122,14 @@ func getLettersReadyForProcessing(puzzle *puzzle) (lettersReady []string) {
 }
 
 func isLetterReady(letter string, puzzle *puzzle) bool {
-	letterRequirementsAreOk := true
-	for p, _ := range puzzle.tree {
-		if p.to == letter {
-			if _, letterRequirementIsDone := puzzle.lettersDone[p.from]; !letterRequirementIsDone {
-				letterRequirementsAreOk = false
+	for edge := range puzzle.graph {
+		if edge.to == letter {
+			if _, letterRequirementIsDone := puzzle.lettersDone[edge.from]; !letterRequirementIsDone {
+				return false
 			}
 		}
 	}
-	return letterRequirementsAreOk
+	return true
 }
 
 func printProgress(time int, puzzle *puzzle) {
