@@ -74,15 +74,11 @@ func main() {
 	workers := workers{[numWorkers]int{}, [numWorkers]string{}}
 
 	forEachLineInFile(filename, puzzle.ingestLineOfInput)
-
 	sort.Strings(puzzle.lettersUsed) // turns out this is simply A-Z
 
 	for time := 0; ; time++ {
-
 		printProgress(time, &puzzle)
-
 		workers.workForOneSecond(&puzzle)
-
 		lettersReady := getLettersReadyForProcessing(&puzzle)
 
 		// Provide letters to workers that are open for processing
@@ -93,8 +89,8 @@ func main() {
 			if workerIsFree && workAvailable {
 				var letter string
 				letter, lettersReady = pop(lettersReady)
-
 				duration := minTaskDuration + int(letter[0]-'A') + 1
+
 				workers.assignWorkload(workerIndex, letter, duration)
 
 				// Make sure we won't assign it again to another worker
