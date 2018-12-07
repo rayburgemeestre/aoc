@@ -22,96 +22,110 @@ type pair struct {
 	to   string
 }
 
+type puzzle struct {
+	tree            map[pair]bool
+	treeLetterAdded map[string]bool
+
+	lettersUsed       []string
+	lettersInProgress map[string]bool
+	lettersDone       map[string]bool
+}
+
+func (puzzle *puzzle) ingestLineOfInput(line string) {
+	words := strings.Fields(line)
+	p := pair{words[1], words[7]}
+	puzzle.tree[p] = true
+	add := func(num string) {
+		if _, alreadyAdded := puzzle.treeLetterAdded[num]; !alreadyAdded {
+			puzzle.lettersUsed = append(puzzle.lettersUsed, num)
+		}
+		puzzle.treeLetterAdded[num] = true
+	}
+	add(p.to)
+	add(p.from)
+}
+
+type workers struct {
+	workerSecondsOfWork [numWorkers]int
+	workerLetter        [numWorkers]string
+}
+
+func (w *workers) workForOneSecond(puzzle *puzzle) {
+	for index, _ := range w.workerSecondsOfWork {
+		if w.workerSecondsOfWork[index] > 0 {
+			w.workerSecondsOfWork[index]--
+			// When done, mark the letter as done, this frees up the worker again
+			if w.workerSecondsOfWork[index] == 0 {
+				puzzle.lettersDone[w.workerLetter[index]] = true
+			}
+		}
+	}
+}
+
+func (w *workers) assignWorkload(index int, letter string, duration int) {
+	w.workerSecondsOfWork[index] = duration
+	w.workerLetter[index] = letter
+}
+
 func main() {
-	tree := map[pair]bool{}
-	treeLetterAdded := map[string]bool{}
+	puzzle := puzzle{map[pair]bool{},
+		map[string]bool{},
+		[]string{}, map[string]bool{}, map[string]bool{}}
+	workers := workers{[numWorkers]int{}, [numWorkers]string{}}
 
-	workers := [numWorkers]int{}
-	workerLetter := [numWorkers]string{}
+	forEachLineInFile("input", puzzle.ingestLineOfInput)
 
-	lettersUsed := []string{}
-	lettersInProgress := map[string]bool{}
-	lettersDone := map[string]bool{}
+	sort.Strings(puzzle.lettersUsed) // turns out this is simply A-Z
 
-	forEachLineInFile("input", func(line string) {
-		words := strings.Fields(line)
-		p := pair{words[1], words[7]}
-		tree[p] = true
-		add := func(num string) {
-			if _, alreadyAdded := treeLetterAdded[num]; !alreadyAdded {
-				lettersUsed = append(lettersUsed, num)
-			}
-			treeLetterAdded[num] = true
-		}
-		add(p.to)
-		add(p.from)
-	})
-	sort.Strings(lettersUsed) // turns out this is simply A-Z
+	for time := 0; ; time++ {
+		printProgress(time, &puzzle)
 
-	time := 0
-	for {
-		// Verbose output
-		fmt.Printf("Second: %d, Done: ", time)
-		for letter, _ := range lettersDone {
-			fmt.Printf("%s", letter)
-		}
-		fmt.Printf(", Items todo: %d\n", len(lettersUsed)-len(lettersDone))
+		workers.workForOneSecond(&puzzle)
 
-		// Process the workers
-		for index, _ := range workers {
-			if workers[index] > 0 {
-				workers[index]--
-				// When done, mark the letter as done, this frees up the worker again
-				if workers[index] == 0 {
-					lettersDone[workerLetter[index]] = true
-				}
-			}
-		}
+		lettersReady := getLettersReadyForProcessing(&puzzle)
 
-		// Gather letters that are ready to be processed (all their inputs are done)
-		lettersReady := []string{}
-		for _, letter := range lettersUsed {
-			if _, isWorkedOn := lettersInProgress[letter]; isWorkedOn {
-				continue
-			}
-			if isLetterReady(tree, letter, lettersDone) {
-				lettersReady = append(lettersReady, letter)
-			}
-		}
+		// Provide letters to workerSecondsOfWork that are open for processing
+		for index := range workers.workerSecondsOfWork {
 
-		// Provide letters to workers that are open for processing
-		for index, _ := range workers {
-			if workers[index] == 0 && len(lettersReady) > 0 {
-				// Chop off one letter from the ready list
-				letter := lettersReady[0]
-				lettersReady = lettersReady[1:]
+			workerIsFree := workers.workerSecondsOfWork[index] == 0
+			workAvailable := len(lettersReady) > 0
 
-				// Assign this workload to the worker
+			if workerIsFree && workAvailable {
+				var letter string
+				letter, lettersReady = pop(lettersReady)
+
 				duration := minTaskDuration + int(letter[0]-'A') + 1
-				workers[index] = duration
-				workerLetter[index] = letter
+				workers.assignWorkload(index, letter, duration)
 
 				// Make sure we won't assign it again to another worker
-				lettersInProgress[letter] = true
+				puzzle.lettersInProgress[letter] = true
 			}
 		}
 
-		if len(lettersUsed)-len(lettersDone) == 0 {
+		if len(puzzle.lettersUsed)-len(puzzle.lettersDone) == 0 {
 			fmt.Println("All done! Answer =", time)
 			break
 		}
-
-		time++
 	}
-
 }
 
-// TODO: Further refactoring (all these parameters are ugly)
-func isLetterReady(tree map[pair]bool, letter string, lettersDone map[string]bool) bool {
+func getLettersReadyForProcessing(puzzle *puzzle) (lettersReady []string) {
+	for _, letter := range puzzle.lettersUsed {
+		if _, isWorkedOn := puzzle.lettersInProgress[letter]; isWorkedOn {
+			continue
+		}
+		if isLetterReady(letter, puzzle) {
+			lettersReady = append(lettersReady, letter)
+		}
+	}
+	return lettersReady
+}
+
+func isLetterReady(letter string, puzzle *puzzle) bool {
 	letterRequirementsAreOk := true
-	for p, _ := range tree {
+	for p, _ := range puzzle.tree {
 		if p.to == letter {
-			if _, letterRequirementIsDone := lettersDone[p.from]; !letterRequirementIsDone {
+			if _, letterRequirementIsDone := puzzle.lettersDone[p.from]; !letterRequirementIsDone {
 				letterRequirementsAreOk = false
 			}
 		}
@@ -119,7 +133,15 @@ func isLetterReady(tree map[pair]bool, letter string, lettersDone map[string]boo
 	return letterRequirementsAreOk
 }
 
-func forEachLineInFile(filename string, callback func(string) ) {
+func printProgress(time int, puzzle *puzzle) {
+	fmt.Printf("Second: %d, Done: ", time)
+	for letter := range puzzle.lettersDone {
+		fmt.Printf("%s", letter)
+	}
+	fmt.Printf(", Items todo: %d\n", len(puzzle.lettersUsed)-len(puzzle.lettersDone))
+}
+
+func forEachLineInFile(filename string, callback func(string)) {
 	file, err := os.Open(filename)
 	if err != nil {
 		log.Fatal(err)
@@ -134,4 +156,8 @@ func forEachLineInFile(filename string, callback func(string) ) {
 	if err := scanner.Err(); err != nil {
 		log.Fatal(err)
 	}
+}
+
+func pop(lettersReady []string) (string, []string) {
+	return lettersReady[0], lettersReady[1:]
 }
