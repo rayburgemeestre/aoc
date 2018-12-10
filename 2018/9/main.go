@@ -25,14 +25,14 @@ func solution(lastMarble int) {
 	scores := map[int]int{}
 
 	for marble = 1; marble <= lastMarble; marble++ {
-		isDivisibleBy23 := marble % 23 == 0
+		isDivisibleBy23 := marble%23 == 0
 
 		if isDivisibleBy23 {
 			// take current marble as score
 			scores[player] += marble
 
 			// move current counter-clockwise seven times
-			for i := 0; i<7; i++ {
+			for i := 0; i < 7; i++ {
 				current = current.Prev()
 				if current == nil {
 					current = game.Back()
@@ -47,7 +47,7 @@ func solution(lastMarble int) {
 
 		} else {
 			// move current clockwise two times
-			for i := 0; i<2; i++ {
+			for i := 0; i < 2; i++ {
 				current = current.Next()
 				if current == nil {
 					current = game.Front()
