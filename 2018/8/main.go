@@ -13,28 +13,25 @@ import (
 const filename = "input"
 
 type tree struct {
-	numChildren int
-	numMetadata int
 	children []tree
 	metaData []int
 }
 
 func ingest(index int, numbers []int, currentTree *tree) (int) {
-	currentTree.numChildren = numbers[index]
+	numChildren := numbers[index]
 	index++
-	currentTree.numMetadata = numbers[index]
+	numMetadata := numbers[index]
 	index++
-	for child:=0; child < currentTree.numChildren; child++ {
-		subtree := tree{0, 0, []tree{}, []int{}}
+	for child:=0; child < numChildren; child++ {
+		subtree := tree{[]tree{}, []int{}}
 		newIndex := ingest(index, numbers, &subtree)
 		index += newIndex - index
 		currentTree.children = append(currentTree.children, subtree)
 	}
-	for meta:=0; meta<currentTree.numMetadata; meta++ {
+	for meta:=0; meta<numMetadata; meta++ {
 		currentTree.metaData = append(currentTree.metaData, numbers[index])
 		index++
 	}
-	//fmt.Println(currentTree)
 	return index
 }
 
@@ -49,7 +46,7 @@ func sumMetaDataRecursively(t *tree) (sum int) {
 }
 
 func sumValuesOfNodesRecursively(t *tree) (sum int) {
-	if t.numChildren == 0 {
+	if len(t.children) == 0 {
 		for _, md := range t.metaData {
 			sum += md
 		}
@@ -67,7 +64,7 @@ func sumValuesOfNodesRecursively(t *tree) (sum int) {
 }
 
 func main() {
-	myTree := tree{0, 0, []tree{}, []int{}}
+	myTree := tree{[]tree{}, []int{}}
 	ingest(0, getFileNumbers(filename), &myTree)
 
 	partOneAnswer := sumMetaDataRecursively(&myTree)
@@ -86,10 +83,13 @@ func getFileNumbers(filename string) []int {
 	defer file.Close()
 
 	scanner := bufio.NewScanner(file)
-	numbers := []int{}
+	var numbers []int
 	for scanner.Scan() {
 		for _, number := range strings.Fields(scanner.Text()) {
-			num, _ := strconv.Atoi(number)
+			num, err := strconv.Atoi(number)
+			if err != nil {
+				panic(err.Error())
+			}
 			numbers = append(numbers, num)
 		}
 	}

@@ -9,19 +9,45 @@ import (
 	"strings"
 )
 
-// For input use:
-const filename = "input"
-const numWorkers = 5
-const minTaskDuration = 60
+func main() {
+	solution("input_test", 2, 0)
+	solution("input", 5, 60)
+}
 
-// For input_test use:
-//const filename = "input_test"
-//const numWorkers = 2
-//const minTaskDuration = 0
+func solution(filename string, numWorkers int, minTaskDuration int) {
+	puzzle := puzzle{map[edge]bool{}, map[string]bool{}, []string{}, map[string]bool{}, map[string]bool{}}
+	workers := workers{make([]int, numWorkers), make([]string, numWorkers)}
 
-type edge struct {
-	from string
-	to   string
+	forEachLineInFile(filename, puzzle.ingestLineOfInput)
+	sort.Strings(puzzle.lettersUsed) // turns out this is simply A-Z
+
+	for time := 0; ; time++ {
+		printProgress(time, &puzzle)
+		workers.workForOneSecond(&puzzle)
+		lettersReady := getLettersReadyForProcessing(&puzzle)
+
+		// Provide letters to workers that are open for processing
+		for workerIndex, secondsTodo := range workers.workers {
+			workerIsFree := secondsTodo == 0
+			workAvailable := len(lettersReady) > 0
+
+			if workerIsFree && workAvailable {
+				var letter string
+				letter = pop(&lettersReady)
+				duration := minTaskDuration + int(letter[0]-'A') + 1
+
+				workers.assignWorkload(workerIndex, letter, duration)
+
+				// Make sure we won't assign it again to another worker
+				puzzle.lettersInProgress[letter] = true
+			}
+		}
+
+		if len(puzzle.lettersUsed)-len(puzzle.lettersDone) == 0 {
+			fmt.Println("All done! Answer =", time)
+			break
+		}
+	}
 }
 
 type puzzle struct {
@@ -31,6 +57,11 @@ type puzzle struct {
 	lettersUsed       []string
 	lettersInProgress map[string]bool
 	lettersDone       map[string]bool
+}
+
+type edge struct {
+	from string
+	to   string
 }
 
 func (puzzle *puzzle) ingestLineOfInput(line string) {
@@ -48,8 +79,8 @@ func (puzzle *puzzle) ingestLineOfInput(line string) {
 }
 
 type workers struct {
-	workers      [numWorkers]int
-	workerLetter [numWorkers]string
+	workers      []int
+	workerLetter []string
 }
 
 func (w *workers) workForOneSecond(puzzle *puzzle) {
@@ -69,41 +100,6 @@ func (w *workers) assignWorkload(index int, letter string, duration int) {
 	w.workerLetter[index] = letter
 }
 
-func main() {
-	puzzle := puzzle{map[edge]bool{}, map[string]bool{}, []string{}, map[string]bool{}, map[string]bool{}}
-	workers := workers{[numWorkers]int{}, [numWorkers]string{}}
-
-	forEachLineInFile(filename, puzzle.ingestLineOfInput)
-	sort.Strings(puzzle.lettersUsed) // turns out this is simply A-Z
-
-	for time := 0; ; time++ {
-		printProgress(time, &puzzle)
-		workers.workForOneSecond(&puzzle)
-		lettersReady := getLettersReadyForProcessing(&puzzle)
-
-		// Provide letters to workers that are open for processing
-		for workerIndex, secondsTodo := range workers.workers {
-			workerIsFree := secondsTodo == 0
-			workAvailable := len(lettersReady) > 0
-
-			if workerIsFree && workAvailable {
-				var letter string
-				letter, lettersReady = pop(lettersReady)
-				duration := minTaskDuration + int(letter[0]-'A') + 1
-
-				workers.assignWorkload(workerIndex, letter, duration)
-
-				// Make sure we won't assign it again to another worker
-				puzzle.lettersInProgress[letter] = true
-			}
-		}
-
-		if len(puzzle.lettersUsed)-len(puzzle.lettersDone) == 0 {
-			fmt.Println("All done! Answer =", time)
-			break
-		}
-	}
-}
 
 func getLettersReadyForProcessing(puzzle *puzzle) (lettersReady []string) {
 	for _, letter := range puzzle.lettersUsed {
@@ -153,6 +149,8 @@ func forEachLineInFile(filename string, callback func(string)) {
 	}
 }
 
-func pop(lettersReady []string) (string, []string) {
-	return lettersReady[0], lettersReady[1:]
+func pop(lettersReady *[]string) (letter string) {
+	letter = (*lettersReady)[0]
+	*lettersReady = (*lettersReady)[1:]
+	return
 }
