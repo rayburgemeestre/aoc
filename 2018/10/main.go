@@ -55,7 +55,8 @@ func solution(filename string) {
 		} else if X.max-X.min > minWidthFound {
 			minWidthFound = X.max - X.min
 			lastSecond = second
-			fmt.Println("Part one answer:")
+			fmt.Println("Part one answer:", lastSecond)
+			fmt.Println("Part two answer:")
 			for y := Y.min; y <= Y.max; y++ {
 				for x := X.min; x <= X.max; x++ {
 					_, exists := previousUniverse[position{x, y}]
@@ -67,7 +68,6 @@ func solution(filename string) {
 				}
 				fmt.Println()
 			}
-			fmt.Println("Part two answer:", lastSecond)
 			break
 		}
 		previousUniverse = universe
