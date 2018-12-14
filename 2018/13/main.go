@@ -16,7 +16,7 @@ const (
 )
 
 const (
-	NOTHING      = iota
+	__           = iota
 	FIRST_LEFT   = iota
 	SECOND_AHEAD = iota
 	THIRD_RIGHT  = iota
@@ -50,15 +50,15 @@ func main() {
 	// Lookup table for determining the changes to the cart (new direction, ascii art and next decision),
 	// based on its current state (direction, track it's on and it's planned decision)
 	lookup := map[Index]Change{
-		Index{LEFT, '/', NOTHING}:       {DOWN, 'v', NOTHING},
-		Index{LEFT, '/', NOTHING}:       {DOWN, 'v', NOTHING},
-		Index{LEFT, '\\', NOTHING}:      {UP, '^', NOTHING},
-		Index{RIGHT, '/', NOTHING}:      {UP, '^', NOTHING},
-		Index{RIGHT, '\\', NOTHING}:     {DOWN, 'v', NOTHING},
-		Index{UP, '/', NOTHING}:         {RIGHT, '>', NOTHING},
-		Index{UP, '\\', NOTHING}:        {LEFT, '<', NOTHING},
-		Index{DOWN, '/', NOTHING}:       {LEFT, '<', NOTHING},
-		Index{DOWN, '\\', NOTHING}:      {RIGHT, '>', NOTHING},
+		Index{LEFT, '/', __}:            {DOWN, 'v', __},
+		Index{LEFT, '/', __}:            {DOWN, 'v', __},
+		Index{LEFT, '\\', __}:           {UP, '^', __},
+		Index{RIGHT, '/', __}:           {UP, '^', __},
+		Index{RIGHT, '\\', __}:          {DOWN, 'v', __},
+		Index{UP, '/', __}:              {RIGHT, '>', __},
+		Index{UP, '\\', __}:             {LEFT, '<', __},
+		Index{DOWN, '/', __}:            {LEFT, '<', __},
+		Index{DOWN, '\\', __}:           {RIGHT, '>', __},
 		Index{LEFT, '+', FIRST_LEFT}:    {DOWN, 'v', SECOND_AHEAD},
 		Index{LEFT, '+', SECOND_AHEAD}:  {LEFT, '<', THIRD_RIGHT},
 		Index{LEFT, '+', THIRD_RIGHT}:   {UP, '^', FIRST_LEFT},
@@ -115,7 +115,7 @@ func main() {
 			track := world[cart.y][cart.x]
 			index := Index{cart.direction, track, cart.decision}
 			if track == '/' || track == '\\' {
-				index.currentDecision = NOTHING
+				index.currentDecision = __
 			}
 
 			// Update cart state
@@ -123,7 +123,7 @@ func main() {
 				next := lookup[index]
 				cart.direction = next.cartDirection
 				cart.c = next.cartCharacter
-				if next.nextDecision != NOTHING {
+				if next.nextDecision != __ {
 					cart.decision = next.nextDecision
 				}
 			}
