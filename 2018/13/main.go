@@ -124,8 +124,8 @@ func main() {
 	})
 
 	partOneFound := false
-	iter := 0
-	for {
+	carsOnMap := len(carts)
+	for iter := 0; ; iter++ {
 		sort.Slice(carts, func(i, j int) bool {
 			if carts[i].y == carts[j].y {
 				return carts[i].x < carts[j].x
@@ -169,40 +169,30 @@ func main() {
 					continue
 				}
 				if cart.x == cart2.x && cart.y == cart2.y {
-					fmt.Println("Collision")
-					cart.collide = true
-					carts[j].collide = true
+					fmt.Println("Collision!")
+					cart.collide, carts[j].collide = true, true
+					carsOnMap -= 2
 					if !partOneFound {
-						partOneFound = true
-						fmt.Println("Part one:")
+						fmt.Println("Part one, first collision:")
+						fmt.Println("Found at iteration", iter)
 						fmt.Printf("Answer: %d,%d\n", cart.x, cart.y)
+						partOneFound = true
 					}
-					fmt.Printf("Answer: %d,%d\n", cart.x, cart.y)
 				}
 			}
-
 			carts[cartIndex] = cart
 		}
 
-		// TODO: This is stupid?
-		remaining := 0
-		remainingCar := Cart{}
-		for _, cart2 := range carts {
-			if cart2.collide {
-				continue
+		if carsOnMap == 1 {
+			fmt.Println("Part two, last car:")
+			fmt.Println("Found in iteration", iter)
+			for _, cart := range carts {
+				if !cart.collide {
+					fmt.Printf("Answer: %d,%d\n", cart.x, cart.y)
+					return
+				}
 			}
-			remainingCar = cart2
-			remaining++
 		}
-
-		if remaining == 1 {
-			fmt.Println("Part two:")
-			fmt.Printf("Remaining cars: %d\n", remaining)
-			fmt.Printf("Last car standing = %d,%d\n", remainingCar.x, remainingCar.y)
-			fmt.Println("Found in iter:", iter)
-			return
-		}
-		iter++
 	}
 }
 
@@ -234,7 +224,7 @@ func forEachLineInFile(filename string, callback func(string)) {
 //			}
 //			if x == c.x && y == c.y {
 //				cart = &c
-//              break
+//				break
 //			}
 //		}
 //		if cart != nil {
