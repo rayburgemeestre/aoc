@@ -26,7 +26,7 @@ func main() {
 		// Move elves
 		elf1 = (elf1 + 1 + puzzle[elf1]) % len(puzzle)
 		elf2 = (elf2 + 1 + puzzle[elf2]) % len(puzzle)
-		//debugVisualize(&puzzle, elf1, elf2)
+		//visualize(&puzzle, elf1, elf2)
 
 		if !foundAnswer1 {
 			if inputNum, _ := strconv.Atoi(puzzleInput); len(puzzle) == inputNum+10+added {
@@ -65,7 +65,7 @@ func main() {
 	}
 }
 
-func debugVisualize(puzzle *[]int, elf1 int, elf2 int) {
+func visualize(puzzle *[]int, elf1 int, elf2 int) {
 	for i, p := range *puzzle {
 		if elf1 == i {
 			fmt.Print("(")
