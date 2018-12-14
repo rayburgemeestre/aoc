@@ -9,30 +9,17 @@ import (
 )
 
 const (
-	EMPTY      = iota
-	HORIZONTAL = iota
-	VERTICAL   = iota
-	CORNER     = iota
-	CROSSROAD  = iota
-)
-
-const (
 	UP    = iota
 	DOWN  = iota
 	LEFT  = iota
 	RIGHT = iota
 )
 
-type Track struct {
-	direction int
-	c         rune
-}
-
 const (
-	NONE            = iota
-	FIRST_LEFT      = iota
-	SECOND_STRAIGHT = iota
-	THIRD_RIGHT     = iota
+	NOTHING      = iota
+	FIRST_LEFT   = iota
+	SECOND_AHEAD = iota
+	THIRD_RIGHT  = iota
 )
 
 type Cart struct {
@@ -45,7 +32,6 @@ type Cart struct {
 }
 
 type Index struct {
-	trackDirection  int
 	cartDirection   int
 	trackCharacter  rune
 	currentDecision int
@@ -58,66 +44,52 @@ type Change struct {
 }
 
 func main() {
-	var world [][]Track
+	var world [][]rune
 	var carts []Cart
 
+	// Lookup table for determining the changes to the cart (new direction, ascii art and next decision),
+	// based on its current state (direction, track it's on and it's planned decision)
 	lookup := map[Index]Change{
-		Index{CORNER, LEFT, '/', NONE}:                Change{DOWN, 'v', NONE},
-		Index{CORNER, LEFT, '/', NONE}:                Change{DOWN, 'v', NONE},
-		Index{CORNER, LEFT, '\\', NONE}:               Change{UP, '^', NONE},
-		Index{CORNER, RIGHT, '/', NONE}:               Change{UP, '^', NONE},
-		Index{CORNER, RIGHT, '\\', NONE}:              Change{DOWN, 'v', NONE},
-		Index{CORNER, UP, '/', NONE}:                  Change{RIGHT, '>', NONE},
-		Index{CORNER, UP, '\\', NONE}:                 Change{LEFT, '<', NONE},
-		Index{CORNER, DOWN, '/', NONE}:                Change{LEFT, '<', NONE},
-		Index{CORNER, DOWN, '\\', NONE}:               Change{RIGHT, '>', NONE},
-		Index{CROSSROAD, LEFT, '+', FIRST_LEFT}:       Change{DOWN, 'v', SECOND_STRAIGHT},
-		Index{CROSSROAD, LEFT, '+', SECOND_STRAIGHT}:  Change{LEFT, '<', THIRD_RIGHT},
-		Index{CROSSROAD, LEFT, '+', THIRD_RIGHT}:      Change{UP, '^', FIRST_LEFT},
-		Index{CROSSROAD, RIGHT, '+', FIRST_LEFT}:      Change{UP, '^', SECOND_STRAIGHT},
-		Index{CROSSROAD, RIGHT, '+', SECOND_STRAIGHT}: Change{RIGHT, '>', THIRD_RIGHT},
-		Index{CROSSROAD, RIGHT, '+', THIRD_RIGHT}:     Change{DOWN, 'v', FIRST_LEFT},
-		Index{CROSSROAD, UP, '+', FIRST_LEFT}:         Change{LEFT, '<', SECOND_STRAIGHT},
-		Index{CROSSROAD, UP, '+', SECOND_STRAIGHT}:    Change{UP, '^', THIRD_RIGHT},
-		Index{CROSSROAD, UP, '+', THIRD_RIGHT}:        Change{RIGHT, '>', FIRST_LEFT},
-		Index{CROSSROAD, DOWN, '+', FIRST_LEFT}:       Change{RIGHT, '>', SECOND_STRAIGHT},
-		Index{CROSSROAD, DOWN, '+', SECOND_STRAIGHT}:  Change{DOWN, 'v', THIRD_RIGHT},
-		Index{CROSSROAD, DOWN, '+', THIRD_RIGHT}:      Change{LEFT, '<', FIRST_LEFT},
+		Index{LEFT, '/', NOTHING}:       {DOWN, 'v', NOTHING},
+		Index{LEFT, '/', NOTHING}:       {DOWN, 'v', NOTHING},
+		Index{LEFT, '\\', NOTHING}:      {UP, '^', NOTHING},
+		Index{RIGHT, '/', NOTHING}:      {UP, '^', NOTHING},
+		Index{RIGHT, '\\', NOTHING}:     {DOWN, 'v', NOTHING},
+		Index{UP, '/', NOTHING}:         {RIGHT, '>', NOTHING},
+		Index{UP, '\\', NOTHING}:        {LEFT, '<', NOTHING},
+		Index{DOWN, '/', NOTHING}:       {LEFT, '<', NOTHING},
+		Index{DOWN, '\\', NOTHING}:      {RIGHT, '>', NOTHING},
+		Index{LEFT, '+', FIRST_LEFT}:    {DOWN, 'v', SECOND_AHEAD},
+		Index{LEFT, '+', SECOND_AHEAD}:  {LEFT, '<', THIRD_RIGHT},
+		Index{LEFT, '+', THIRD_RIGHT}:   {UP, '^', FIRST_LEFT},
+		Index{RIGHT, '+', FIRST_LEFT}:   {UP, '^', SECOND_AHEAD},
+		Index{RIGHT, '+', SECOND_AHEAD}: {RIGHT, '>', THIRD_RIGHT},
+		Index{RIGHT, '+', THIRD_RIGHT}:  {DOWN, 'v', FIRST_LEFT},
+		Index{UP, '+', FIRST_LEFT}:      {LEFT, '<', SECOND_AHEAD},
+		Index{UP, '+', SECOND_AHEAD}:    {UP, '^', THIRD_RIGHT},
+		Index{UP, '+', THIRD_RIGHT}:     {RIGHT, '>', FIRST_LEFT},
+		Index{DOWN, '+', FIRST_LEFT}:    {RIGHT, '>', SECOND_AHEAD},
+		Index{DOWN, '+', SECOND_AHEAD}:  {DOWN, 'v', THIRD_RIGHT},
+		Index{DOWN, '+', THIRD_RIGHT}:   {LEFT, '<', FIRST_LEFT},
 	}
 
+	// Read all "world" data
 	y := 0
 	forEachLineInFile("input", func(line string) {
-		world = append(world, []Track{})
+		world = append(world, []rune{})
 		x := 0
 		for _, c := range line {
-			var track Track
 			switch c {
-			case '|':
-				track = Track{VERTICAL, c}
-			case '-':
-				track = Track{HORIZONTAL, c}
-			case '/':
-				track = Track{CORNER, c}
-			case '\\':
-				track = Track{CORNER, c}
-			case '+':
-				track = Track{CROSSROAD, c}
 			case '^':
-				track = Track{VERTICAL, '|'}
-				carts = append(carts, Cart{UP, x, y, '^', FIRST_LEFT, false})
+				c, carts = '|', append(carts, Cart{UP, x, y, '^', FIRST_LEFT, false})
 			case 'v':
-				track = Track{VERTICAL, '|'}
-				carts = append(carts, Cart{DOWN, x, y, 'v', FIRST_LEFT, false})
+				c, carts = '|', append(carts, Cart{DOWN, x, y, 'v', FIRST_LEFT, false})
 			case '<':
-				track = Track{HORIZONTAL, '-'}
-				carts = append(carts, Cart{LEFT, x, y, '<', FIRST_LEFT, false})
+				c, carts = '-', append(carts, Cart{LEFT, x, y, '<', FIRST_LEFT, false})
 			case '>':
-				track = Track{HORIZONTAL, '-'}
-				carts = append(carts, Cart{RIGHT, x, y, '>', FIRST_LEFT, false})
-			default:
-				track = Track{EMPTY, 0}
+				c, carts = '-', append(carts, Cart{RIGHT, x, y, '>', FIRST_LEFT, false})
 			}
-			world[y] = append(world[y], track)
+			world[y] = append(world[y], c)
 			x++
 		}
 		y++
@@ -126,6 +98,8 @@ func main() {
 	partOneFound := false
 	carsOnMap := len(carts)
 	for iter := 0; ; iter++ {
+		// Make sure the carts slice is sorted by (row, col) because it's important to determine the order in which
+		// the carts move
 		sort.Slice(carts, func(i, j int) bool {
 			if carts[i].y == carts[j].y {
 				return carts[i].x < carts[j].x
@@ -133,25 +107,28 @@ func main() {
 			return carts[i].y < carts[j].y
 		})
 
-		for cartIndex := 0; cartIndex < len(carts); cartIndex++ {
-			cart := carts[cartIndex]
+		for cartIndex, cart := range carts {
 			if cart.collide {
 				continue
 			}
-			track := world[cart.y][cart.x]
 
-			index := Index{track.direction, cart.direction, track.c, cart.decision}
-			if track.direction == CORNER {
-				index.currentDecision = NONE
+			track := world[cart.y][cart.x]
+			index := Index{cart.direction, track, cart.decision}
+			if track == '/' || track == '\\' {
+				index.currentDecision = NOTHING
 			}
+
+			// Update cart state
 			if _, exists := lookup[index]; exists {
-				cart.direction = lookup[index].cartDirection
-				cart.c = lookup[index].cartCharacter
-				if lookup[index].nextDecision != NONE {
-					cart.decision = lookup[index].nextDecision
+				next := lookup[index]
+				cart.direction = next.cartDirection
+				cart.c = next.cartCharacter
+				if next.nextDecision != NOTHING {
+					cart.decision = next.nextDecision
 				}
 			}
 
+			// Move cart
 			switch cart.direction {
 			case LEFT:
 				cart.x--
@@ -161,16 +138,13 @@ func main() {
 				cart.y--
 			case DOWN:
 				cart.y++
-			default:
 			}
 
-			for j, cart2 := range carts {
-				if cart2.collide {
-					continue
-				}
-				if cart.x == cart2.x && cart.y == cart2.y {
-					fmt.Println("Collision!")
-					cart.collide, carts[j].collide = true, true
+			// Check for collisions
+			for i, cart2 := range carts {
+				if !cart2.collide && cart.x == cart2.x && cart.y == cart2.y {
+					fmt.Println("Collision at", cart.x, cart.y)
+					cart.collide, carts[i].collide = true, true
 					carsOnMap -= 2
 					if !partOneFound {
 						fmt.Println("Part one, first collision:")
@@ -182,17 +156,41 @@ func main() {
 			}
 			carts[cartIndex] = cart
 		}
-
 		if carsOnMap == 1 {
-			fmt.Println("Part two, last car:")
-			fmt.Println("Found in iteration", iter)
 			for _, cart := range carts {
 				if !cart.collide {
+					fmt.Println("Part two, last car:")
+					fmt.Println("Found in iteration", iter)
 					fmt.Printf("Answer: %d,%d\n", cart.x, cart.y)
+					//visualize(y, world, carts)
 					return
 				}
 			}
 		}
+	}
+}
+
+func visualize(y int, world [][]rune, carts []Cart) {
+	for y = 0; y < len(world); y++ {
+		for x := 0; x < len(world[y]); x++ {
+			track := world[y][x]
+			cart := func() *Cart {
+				for _, c := range carts {
+					if !c.collide && x == c.x && y == c.y {
+						return &c
+					}
+				}
+				return nil
+			}()
+			if cart != nil {
+				fmt.Print(string(cart.c))
+			} else if track == 0 {
+				fmt.Print(" ")
+			} else {
+				fmt.Print(string(track))
+			}
+		}
+		fmt.Println()
 	}
 }
 
@@ -212,28 +210,3 @@ func forEachLineInFile(filename string, callback func(string)) {
 		log.Fatal(err)
 	}
 }
-
-// removed visualization code
-//var cart *Cart
-//for y = 0; y < len(world); y++ {
-//	for x := 0; x < len(world[y]); x++ {
-//		track := world[y][x]
-//		for _, c := range carts {
-//			if c.collide {
-//				continue
-//			}
-//			if x == c.x && y == c.y {
-//				cart = &c
-//				break
-//			}
-//		}
-//		if cart != nil {
-//			fmt.Print(string(cart.c))
-//		} else if track.c == 0 {
-//			fmt.Print(" ")
-//		} else {
-//			fmt.Print(string(track.c))
-//		}
-//	}
-//	fmt.Println()
-//}
