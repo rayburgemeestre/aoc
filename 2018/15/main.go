@@ -41,7 +41,7 @@ func main() {
 		{0, +1, 0}, // down
 	}
 
-	fmt.Println("Initially:")
+	fmt.Println("Round Initially:")
 	visualize(&world)
 
 	for round := 0; ; round++ {
@@ -49,6 +49,7 @@ func main() {
 
 		// Move units
 		for _, attacker := range units {
+			fmt.Println("processing unit:", attacker.x, attacker.y)
 			if attacker.HP <= 0 {
 				continue
 			}
@@ -111,15 +112,14 @@ func main() {
 				attacker.x = nextMove.x
 				attacker.y = nextMove.y
 			}
-		}
 
-		sortUnitsByCoord()
+			// sortUnitsByCoord()
 
-		// Calculate damages
-		for _, attacker := range units {
-			if attacker.HP <= 0 {
-				continue
-			}
+			// Calculate damages
+			//for _, attacker := range units {
+			//    if attacker.HP <= 0 {
+			//        continue
+			//    }
 
 			// For each possible attacker find the first victim with the lowest health
 			minFound := math.MaxInt32
@@ -144,18 +144,45 @@ func main() {
 			// We found a victim, slay it!!
 			if unit != nil {
 				unit.HP -= 3
+				if unit.HP <= 0 {
+					world[unit.y][unit.x].unit = nil
+				}
 			}
 		}
 
 		fmt.Printf("After %d round(s)\n", round+1)
 		visualize(&world)
+
+		numGoblins := 0
+		numElves := 0
+		for _, u := range units {
+			if u.HP > 0 && u.c == 'G' {
+				numGoblins++
+			} else if u.HP > 0 && u.c == 'E' {
+				numElves++
+			}
+		}
+		if numElves == 0 || numGoblins == 0 {
+			fmt.Println(round)
+			sum := 0
+			for _, s := range units {
+				if s.HP > 0 {
+					sum += s.HP
+				}
+			}
+			fmt.Printf("Inside %d round(s)\n", round)
+			visualize(&world)
+			fmt.Println(sum)
+			fmt.Print(sum * round)
+			os.Exit(0)
+		}
 	}
 }
 
 func readMap() {
 	world = [][]Tile{}
 	y := 0
-	forEachLineInFile("input_test", func(s string) {
+	forEachLineInFile("input", func(s string) {
 		world = append(world, []Tile{})
 		x := 0
 		for _, c := range s {
@@ -269,11 +296,9 @@ func calculateDistance(from Tile, to Tile, world *[][]Tile) (distance int, next 
 
 			// find in frontier
 			foundInFrontier := false
-			var existingNeighbour *Tile
 			for _, v := range *frontier {
 				if v.x == neighbour.x && v.y == neighbour.y {
 					foundInFrontier = true
-					existingNeighbour = &v
 					break
 				}
 			}
@@ -282,21 +307,12 @@ func calculateDistance(from Tile, to Tile, world *[][]Tile) (distance int, next 
 				neighbour.cost = current.cost + cost
 				heap.Push(frontier, Tile{neighbour.c, neighbour.unit, neighbour.x, neighbour.y, neighbour.cost})
 				pred[CoordCost{neighbour.x, neighbour.y, neighbour.cost}] = CoordCost{current.x, current.y, current.cost}
-			} else if existingNeighbour.cost > current.cost+cost {
-				existingNeighbour.cost = current.cost + cost // this doesn't change the right thing
-				for k, v := range *frontier {                // this does :-]
-					if v.x == neighbour.x && v.y == neighbour.y {
-						(*frontier)[k].cost = existingNeighbour.cost
-						pred[CoordCost{v.x, v.y, (*frontier)[k].cost}] = CoordCost{current.x, current.y, current.cost}
-						break
-					}
-				}
 			}
 			return true
 		}
 
 		for _, side := range sides {
-			exploreNeighbour(current.x + side.x, current.y + side.y, 1)
+			exploreNeighbour(current.x+side.x, current.y+side.y, 1)
 		}
 	}
 	return
@@ -320,7 +336,7 @@ func forEachLineInFile(filename string, callback func(string)) {
 func visualize(world *[][]Tile) {
 	for y := 0; y < len(*world); y++ {
 		for x := 0; x < len((*world)[y]); x++ {
-			if tile := (*world)[y][x]; tile.unit != nil && tile.unit.HP > 0 {
+			if tile := (*world)[y][x]; tile.unit != nil {
 				fmt.Print(string(tile.unit.c))
 			} else {
 				fmt.Print(string(tile.c))
@@ -329,7 +345,6 @@ func visualize(world *[][]Tile) {
 		fmt.Println()
 	}
 	for _, u := range units {
-		fmt.Println(u.x,u.y,string(u.c),u.HP)
+		fmt.Println(u.x, u.y, string(u.c), u.HP)
 	}
 }
-
