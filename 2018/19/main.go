@@ -127,7 +127,6 @@ func main() {
 // Note that the input instruction contains the instruction number as well, but since we need to speculate which
 // instruction number is which operation, we provide our own as a first parameter.
 func next(instruction string, IP int, input []int, register []int) (NewIP int, out []int) {
-	//input = input[1:] // ignore the instruction number in the input instruction
 	NewIP = IP
 
 	// initialize the new state of the register with the current state
@@ -139,8 +138,6 @@ func next(instruction string, IP int, input []int, register []int) (NewIP int, o
 	case "addr":
 		out[input[C]] = register[input[A]] + register[input[B]]
 	case "addi":
-		//out[IPreg] = IP
-		//out[IPreg]++
 		out[input[C]] = register[input[A]] + input[B]
 	case "mulr":
 		out[input[C]] = register[input[A]] * register[input[B]]
@@ -157,7 +154,6 @@ func next(instruction string, IP int, input []int, register []int) (NewIP int, o
 	case "setr":
 		out[input[C]] = register[input[A]]
 	case "seti":
-		//out[IPreg] = IP
 		out[input[C]] = input[A]
 	case "gtir":
 		if input[A] > register[input[B]] {
